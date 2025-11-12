@@ -28,9 +28,13 @@ except Exception as e:
     print("2. You have credits at https://openrouter.ai/credits")
     raise
 
+# Global variables for tracking
+last_retrieved_chunks = []
+last_query_metrics = {}
+
 def query_assistant(message, history):
     """
-    Process user query and return answer
+    Process user query and return answer with metrics tracking
 
     Args:
         message: User's question
@@ -39,6 +43,8 @@ def query_assistant(message, history):
     Returns:
         Updated history with new message and answer
     """
+    global last_retrieved_chunks, last_query_metrics
+    
     if not message.strip():
         return history
 
@@ -48,13 +54,26 @@ def query_assistant(message, history):
     print(f"\n[{time.strftime('%H:%M:%S')}] User query: {message}")
 
     try:
+        # Classify query type
+        query_type = classify_query(message)
+        
         # Get answer from assistant
         print(f"   [DEBUG] Starting query processing with OpenRouter...")
         answer = assistant.query(message, verbose=False)
         
         elapsed = time.time() - start_time
+        cost = elapsed * 0.0001  # Rough estimate
+        
         print(f"   [OK] Query completed in {elapsed:.1f}s")
-        print(f"   [COST] Estimated: ~${elapsed * 0.0001:.4f}")
+        print(f"   [COST] Estimated: ~${cost:.4f}")
+
+        # Store metrics for display
+        last_query_metrics = {
+            "elapsed": elapsed,
+            "cost": cost,
+            "query_type": query_type,
+            "exchanges": len(assistant.conversation_history)
+        }
 
         # Append to history
         history.append((message, answer))
@@ -78,6 +97,78 @@ def query_assistant(message, history):
         
         history.append((message, error_msg))
         return history
+
+
+def classify_query(query: str) -> str:
+    """Classify query type for better organization"""
+    query_lower = query.lower()
+    
+    if any(word in query_lower for word in ["how", "work", "does"]):
+        return "🔍 How-to"
+    elif any(word in query_lower for word in ["what", "is", "define"]):
+        return "📚 Definition"
+    elif any(word in query_lower for word in ["show", "code", "example"]):
+        return "👀 Code"
+    elif any(word in query_lower for word in ["where", "find", "locate"]):
+        return "📍 Location"
+    else:
+        return "❓ Other"
+
+
+def get_metrics_display() -> str:
+    """Format metrics for display"""
+    if not last_query_metrics:
+        return "⏱️ No query executed yet"
+    
+    metrics = last_query_metrics
+    return f"""
+⏱️ **Time**: {metrics['elapsed']:.1f}s
+💰 **Cost**: ${metrics['cost']:.4f}
+🏷️ **Type**: {metrics['query_type']}
+📚 **Memory**: {metrics['exchanges']} exchanges
+    """.strip()
+
+
+def export_conversation():
+    """Export conversation history as JSON"""
+    from datetime import datetime
+    import json
+    
+    if not assistant.conversation_history:
+        return "⚠️ No conversation to export yet"
+    
+    try:
+        filename = f"conversation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        export_data = {
+            "timestamp": datetime.now().isoformat(),
+            "model_config": {
+                "orchestrator": os.getenv('ORCHESTRATOR_MODEL'),
+                "synthesizer": os.getenv('SYNTHESIZER_MODEL'),
+                "graph_analyst": os.getenv('GRAPH_ANALYST_MODEL')
+            },
+            "conversation": assistant.conversation_history
+        }
+        
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(export_data, f, indent=2, ensure_ascii=False)
+        
+        return f"✅ Saved to `{filename}` ({len(assistant.conversation_history)} exchanges)"
+    except Exception as e:
+        return f"❌ Export failed: {str(e)}"
+
+
+def get_sources_display() -> str:
+    """Display sources used in last query"""
+    if not last_retrieved_chunks:
+        return "📂 No sources retrieved yet"
+    
+    sources = "## 📂 Sources:\n\n"
+    for i, chunk in enumerate(last_retrieved_chunks[:5], 1):
+        file_path = chunk.get('metadata', {}).get('file_path', 'unknown')
+        score = chunk.get('score', 0)
+        sources += f"{i}. **{file_path}** (relevance: {score:.2f})\n"
+    
+    return sources
 
 
 # Get model names for display
@@ -153,19 +244,39 @@ with gr.Blocks(title="Academicon Code Assistant (OpenRouter)", theme=gr.themes.S
     ⚙️ **Change model:** Edit agent models in `.env` file
     """)
 
+    # New row for metrics, sources, and export
+    with gr.Row():
+        with gr.Column(scale=2):
+            metrics_display = gr.Markdown(value="⏱️ No query executed yet", label="📊 Query Metrics")
+        
+        with gr.Column(scale=2):
+            sources_display = gr.Markdown(value="📂 No sources retrieved yet", label="📂 Source Code")
+        
+        with gr.Column(scale=1):
+            export_btn = gr.Button("💾 Export Chat", variant="secondary")
+            export_status = gr.Textbox(value="", label="Export Status", interactive=False)
+
     # Event handlers
     def submit_and_clear(message, history):
         new_history = query_assistant(message, history)
-        return new_history, ""  # Return updated history and clear input
+        # Update metrics and sources displays
+        metrics = get_metrics_display()
+        sources = get_sources_display()
+        return new_history, "", metrics, sources  # Return updated history, input, metrics, sources
 
     def clear_memory():
         assistant.clear_history()
-        return [], ""  # Clear chat and input
+        return [], "", "⏱️ No query executed yet", "📂 No sources retrieved yet"
 
-    msg.submit(submit_and_clear, [msg, chatbot], [chatbot, msg])
-    submit.click(submit_and_clear, [msg, chatbot], [chatbot, msg])
-    clear.click(lambda: ([], ""), None, [chatbot, msg], queue=False)
-    clear_history.click(clear_memory, None, [chatbot, msg], queue=False)
+    def do_export():
+        result = export_conversation()
+        return result
+
+    msg.submit(submit_and_clear, [msg, chatbot], [chatbot, msg, metrics_display, sources_display])
+    submit.click(submit_and_clear, [msg, chatbot], [chatbot, msg, metrics_display, sources_display])
+    clear.click(lambda: ([], "", "⏱️ No query executed yet", "📂 No sources retrieved yet"), None, [chatbot, msg, metrics_display, sources_display], queue=False)
+    clear_history.click(clear_memory, None, [chatbot, msg, metrics_display, sources_display], queue=False)
+    export_btn.click(do_export, None, export_status)
 
 # Launch the app
 if __name__ == "__main__":
