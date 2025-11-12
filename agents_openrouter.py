@@ -49,7 +49,8 @@ class GraphAnalystAgent:
 
     def __init__(self):
         api_key = os.getenv("OPENROUTER_API_KEY")
-        model_name = os.getenv("MODEL_NAME", "z-ai/glm-4.5-air:free")
+        # Use dedicated model for graph analysis (better at code structure)
+        model_name = os.getenv("GRAPH_ANALYST_MODEL", os.getenv("FALLBACK_MODEL", "openai/gpt-oss-120b"))
         
         if not api_key:
             raise ValueError("OPENROUTER_API_KEY not set in .env file")
@@ -121,7 +122,8 @@ class OrchestratorAgent:
 
     def __init__(self):
         api_key = os.getenv("OPENROUTER_API_KEY")
-        model_name = os.getenv("MODEL_NAME", "z-ai/glm-4.5-air:free")
+        # Use fast planning model (DeepSeek is excellent at task planning)
+        model_name = os.getenv("ORCHESTRATOR_MODEL", os.getenv("FALLBACK_MODEL", "deepseek/deepseek-chat-v3.1:free"))
         
         if not api_key:
             raise ValueError("OPENROUTER_API_KEY not set in .env file")
@@ -187,7 +189,8 @@ class SynthesizerAgent:
 
     def __init__(self):
         api_key = os.getenv("OPENROUTER_API_KEY")
-        model_name = os.getenv("MODEL_NAME", "z-ai/glm-4.5-air:free")
+        # Use best writing model (Gemini Flash excellent at synthesis)
+        model_name = os.getenv("SYNTHESIZER_MODEL", os.getenv("FALLBACK_MODEL", "google/gemini-2.0-flash-exp-1219"))
         
         if not api_key:
             raise ValueError("OPENROUTER_API_KEY not set in .env file")
@@ -209,13 +212,14 @@ class SynthesizerAgent:
 
         Args:
             user_query: Original user question
-            context: Dict with code_chunks and optional analysis
+            context: Dict with code_chunks, optional analysis, and conversation_history
 
         Returns:
             Final answer string
         """
         code_chunks = context.get("code_chunks", [])
         analysis = context.get("analysis", {})
+        conversation_history = context.get("conversation_history", [])
 
         if not code_chunks:
             return "I couldn't find relevant code in the database. Please try rephrasing your question."
@@ -228,10 +232,20 @@ class SynthesizerAgent:
 
         code_str = "\n".join(code_context)
 
-        # Build prompt
-        prompt = f"""You are a code assistant. Answer the user's question based on the provided code chunks.
+        # Build prompt with conversation history
+        prompt = f"""You are a code assistant. Answer the user's question based on the provided code chunks."""
+        
+        # Add conversation history if exists
+        if conversation_history:
+            prompt += "\n\nPrevious Conversation:\n"
+            for i, exchange in enumerate(conversation_history[-3:], 1):
+                prompt += f"\nQ{i}: {exchange['query']}\n"
+                prompt += f"A{i}: {exchange['answer'][:200]}...\n"  # First 200 chars
+            prompt += "\n(Use this context to maintain conversation continuity)\n"
 
-User Question: {user_query}
+        prompt += f"""
+
+Current Question: {user_query}
 
 Code Context:
 {code_str}
@@ -244,6 +258,7 @@ Code Context:
 Instructions:
 - Answer clearly and concisely
 - Reference specific code when relevant
+- If this is a follow-up question, use previous context
 - If code doesn't fully answer the question, say so
 - Use markdown formatting for code snippets
 

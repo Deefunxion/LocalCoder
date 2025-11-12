@@ -80,17 +80,22 @@ def query_assistant(message, history):
         return history
 
 
-# Get model name for display
-model_name = os.getenv('MODEL_NAME', 'unknown')
+# Get model names for display
+orchestrator_model = os.getenv('ORCHESTRATOR_MODEL', 'unknown')
+graph_analyst_model = os.getenv('GRAPH_ANALYST_MODEL', 'unknown')
+synthesizer_model = os.getenv('SYNTHESIZER_MODEL', 'unknown')
 
 # Create Gradio interface
 with gr.Blocks(title="Academicon Code Assistant (OpenRouter)", theme=gr.themes.Soft()) as demo:
     gr.Markdown(f"""
     # 🤖 Academicon Code Assistant (OpenRouter)
 
-    **Using:** `{model_name}` via OpenRouter API
+    **Multi-Model Setup (All FREE!):**
+    - 🎯 **Orchestrator**: `{orchestrator_model}` (Planning)
+    - 🔍 **Graph Analyst**: `{graph_analyst_model}` (Code Analysis) - Disabled for speed
+    - ✍️ **Synthesizer**: `{synthesizer_model}` (Answer Generation)
     
-    Ask questions about the Academicon codebase. The assistant uses 4 AI agents:
+    Ask questions about the Academicon codebase. Total query time: **~60-80s** 🚀
     - **Orchestrator**: Plans the search strategy ⚡ (~2-3s)
     - **Indexer**: Retrieves relevant code 📚
     - **Graph Analyst**: Analyzes relationships (disabled for speed)
@@ -120,7 +125,8 @@ with gr.Blocks(title="Academicon Code Assistant (OpenRouter)", theme=gr.themes.S
 
     with gr.Row():
         submit = gr.Button("Send", variant="primary", scale=1)
-        clear = gr.Button("Clear", scale=1)
+        clear = gr.Button("Clear Chat", scale=1)
+        clear_history = gr.Button("Clear Memory", scale=1, variant="secondary")
 
     # Example questions
     gr.Examples(
@@ -137,11 +143,14 @@ with gr.Blocks(title="Academicon Code Assistant (OpenRouter)", theme=gr.themes.S
     gr.Markdown(f"""
     ---
     💡 **Tips:**
+    - Ask follow-up questions - conversation history is maintained
+    - "Clear Chat" = Clear visual chat only
+    - "Clear Memory" = Clear conversation history (start fresh)
     - More specific questions = better answers
     - Queries cost ~$0.01-0.02 each
     - Check credits: [OpenRouter Dashboard](https://openrouter.ai/credits)
     
-    ⚙️ **Change model:** Edit `MODEL_NAME` in `.env` file
+    ⚙️ **Change model:** Edit agent models in `.env` file
     """)
 
     # Event handlers
@@ -149,9 +158,14 @@ with gr.Blocks(title="Academicon Code Assistant (OpenRouter)", theme=gr.themes.S
         new_history = query_assistant(message, history)
         return new_history, ""  # Return updated history and clear input
 
+    def clear_memory():
+        assistant.clear_history()
+        return [], ""  # Clear chat and input
+
     msg.submit(submit_and_clear, [msg, chatbot], [chatbot, msg])
     submit.click(submit_and_clear, [msg, chatbot], [chatbot, msg])
     clear.click(lambda: ([], ""), None, [chatbot, msg], queue=False)
+    clear_history.click(clear_memory, None, [chatbot, msg], queue=False)
 
 # Launch the app
 if __name__ == "__main__":

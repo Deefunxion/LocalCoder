@@ -28,6 +28,9 @@ class AcademiconAssistant:
         print("="*60)
         print("Academicon Code Assistant (OpenRouter)")
         print("="*60)
+        
+        # Initialize conversation history
+        self.conversation_history = []
 
         # Load embedding model with GPU support
         print("\n[1/5] Loading embedding model...")
@@ -86,6 +89,11 @@ class AcademiconAssistant:
             print("   [OK] All agents ready")
         except Exception as e:
             print(f"   [ERROR] Health check failed: {e}")
+
+    def clear_history(self):
+        """Clear conversation history"""
+        self.conversation_history = []
+        print("   [OK] Conversation history cleared")
 
     def query(self, user_query: str, verbose: bool = True) -> str:
         """
@@ -151,14 +159,23 @@ class AcademiconAssistant:
 
             context = {
                 "code_chunks": unique_chunks[:5],
-                "analysis": analysis
+                "analysis": analysis,
+                "conversation_history": self.conversation_history[-3:]  # Last 3 exchanges
             }
             answer = self.synthesizer.synthesize(user_query, context)
+            
+            # Add to conversation history
+            self.conversation_history.append({
+                "query": user_query,
+                "answer": answer
+            })
             
             total_elapsed = time.time() - start_time
             if verbose:
                 print(f"\n   [OK] Total query time: {total_elapsed:.1f}s")
                 print(f"   [COST] ~${total_elapsed * 0.0001:.4f} (estimated)")
+                if len(self.conversation_history) > 1:
+                    print(f"   [HISTORY] {len(self.conversation_history)} exchanges in memory")
                 print("\n" + "="*60)
                 print("Answer:")
                 print("="*60)
