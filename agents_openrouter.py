@@ -1,0 +1,257 @@
+# agents_openrouter.py
+# Multi-Agent System for Academicon Code Assistant - OpenRouter Version
+
+from llama_index.llms.openai_like import OpenAILike
+from llama_index.core import VectorStoreIndex
+from typing import List, Dict, Any
+import json
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+
+class IndexerAgent:
+    """Agent 1: Retrieves relevant code chunks from vector database"""
+
+    def __init__(self, index: VectorStoreIndex):
+        self.index = index
+        print("[OK] Agent 1 (Indexer) initialized")
+
+    def retrieve(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+        """
+        Retrieve most relevant code chunks for a query
+
+        Args:
+            query: Search query
+            top_k: Number of results to return
+
+        Returns:
+            List of dicts with text, score, and metadata
+        """
+        retriever = self.index.as_retriever(similarity_top_k=top_k)
+        nodes = retriever.retrieve(query)
+
+        results = []
+        for node in nodes:
+            results.append({
+                "text": node.node.text,
+                "score": float(node.score) if node.score else 0.0,
+                "metadata": node.node.metadata
+            })
+
+        return results
+
+
+class GraphAnalystAgent:
+    """Agent 2: Analyzes code relationships and structure"""
+
+    def __init__(self):
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        model_name = os.getenv("MODEL_NAME", "z-ai/glm-4.5-air:free")
+        
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY not set in .env file")
+        
+        self.llm = OpenAILike(
+            model=model_name,
+            api_key=api_key,
+            api_base="https://openrouter.ai/api/v1",
+            is_chat_model=True,
+            temperature=0.1,
+            timeout=60.0,
+            max_retries=2
+        )
+        print(f"[OK] Agent 2 (Graph Analyst) initialized with {model_name}")
+
+    def analyze_relationships(self, code_chunks: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Analyze code chunks to extract functions, dependencies, and relationships
+
+        Args:
+            code_chunks: List of code chunks from Indexer
+
+        Returns:
+            Dict with functions, dependencies, and relationships
+        """
+        if not code_chunks:
+            return {"functions": [], "dependencies": [], "relationships": []}
+
+        # Limit context to avoid overwhelming the model
+        limited_chunks = [c['text'][:800] for c in code_chunks[:3]]
+
+        prompt = f"""Analyze these code chunks and extract:
+1. Main function/class names
+2. Import dependencies
+3. Relationships between components
+
+Code chunks:
+{json.dumps(limited_chunks, indent=2)}
+
+Return ONLY valid JSON with this structure:
+{{
+  "functions": ["function1", "function2"],
+  "dependencies": ["import1", "import2"],
+  "relationships": ["func1 calls func2"]
+}}"""
+
+        try:
+            response = self.llm.complete(prompt)
+            response_text = str(response).strip()
+
+            # Try to extract JSON from markdown code blocks
+            if "```json" in response_text:
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                response_text = response_text[json_start:json_end].strip()
+            elif "```" in response_text:
+                json_start = response_text.find("```") + 3
+                json_end = response_text.find("```", json_start)
+                response_text = response_text[json_start:json_end].strip()
+
+            return json.loads(response_text)
+        except Exception as e:
+            print(f"   [WARN] Graph analysis failed: {e}")
+            return {"functions": [], "dependencies": [], "relationships": []}
+
+
+class OrchestratorAgent:
+    """Agent 3: Plans search strategy based on user query"""
+
+    def __init__(self):
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        model_name = os.getenv("MODEL_NAME", "z-ai/glm-4.5-air:free")
+        
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY not set in .env file")
+        
+        self.llm = OpenAILike(
+            model=model_name,
+            api_key=api_key,
+            api_base="https://openrouter.ai/api/v1",
+            is_chat_model=True,
+            temperature=0.1,
+            timeout=60.0,
+            max_retries=2
+        )
+        print(f"[OK] Agent 3 (Orchestrator) initialized with {model_name}")
+
+    def plan_query(self, user_query: str) -> Dict[str, Any]:
+        """
+        Plan search strategy for user query
+
+        Args:
+            user_query: User's question
+
+        Returns:
+            Dict with search_queries and analysis_needed flag
+        """
+        prompt = f"""Given this user query about a codebase:
+"{user_query}"
+
+Generate 1-2 search queries to find relevant code and determine if code relationship analysis is needed.
+
+Return ONLY valid JSON:
+{{
+  "search_queries": ["query1", "query2"],
+  "analysis_needed": true/false
+}}"""
+
+        try:
+            response = self.llm.complete(prompt)
+            response_text = str(response).strip()
+
+            # Extract JSON
+            if "```json" in response_text:
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                response_text = response_text[json_start:json_end].strip()
+            elif "```" in response_text:
+                json_start = response_text.find("```") + 3
+                json_end = response_text.find("```", json_start)
+                response_text = response_text[json_start:json_end].strip()
+
+            result = json.loads(response_text)
+            return result
+        except Exception as e:
+            print(f"   [WARN] Planning failed: {e}, using fallback")
+            return {
+                "search_queries": [user_query],
+                "analysis_needed": False
+            }
+
+
+class SynthesizerAgent:
+    """Agent 4: Synthesizes final answer from retrieved context"""
+
+    def __init__(self):
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        model_name = os.getenv("MODEL_NAME", "z-ai/glm-4.5-air:free")
+        
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY not set in .env file")
+        
+        self.llm = OpenAILike(
+            model=model_name,
+            api_key=api_key,
+            api_base="https://openrouter.ai/api/v1",
+            is_chat_model=True,
+            temperature=0.2,
+            timeout=90.0,
+            max_retries=2
+        )
+        print(f"[OK] Agent 4 (Synthesizer) initialized with {model_name}")
+
+    def synthesize(self, user_query: str, context: Dict[str, Any]) -> str:
+        """
+        Generate final answer based on retrieved code and analysis
+
+        Args:
+            user_query: Original user question
+            context: Dict with code_chunks and optional analysis
+
+        Returns:
+            Final answer string
+        """
+        code_chunks = context.get("code_chunks", [])
+        analysis = context.get("analysis", {})
+
+        if not code_chunks:
+            return "I couldn't find relevant code in the database. Please try rephrasing your question."
+
+        # Format code chunks
+        code_context = []
+        for i, chunk in enumerate(code_chunks[:5], 1):
+            file_path = chunk.get('metadata', {}).get('file_path', 'unknown')
+            code_context.append(f"[Chunk {i} - {file_path}]\n{chunk['text']}\n")
+
+        code_str = "\n".join(code_context)
+
+        # Build prompt
+        prompt = f"""You are a code assistant. Answer the user's question based on the provided code chunks.
+
+User Question: {user_query}
+
+Code Context:
+{code_str}
+"""
+
+        if analysis and any(analysis.values()):
+            prompt += f"\nCode Analysis:\n{json.dumps(analysis, indent=2)}\n"
+
+        prompt += """
+Instructions:
+- Answer clearly and concisely
+- Reference specific code when relevant
+- If code doesn't fully answer the question, say so
+- Use markdown formatting for code snippets
+
+Answer:"""
+
+        try:
+            response = self.llm.complete(prompt)
+            return str(response).strip()
+        except Exception as e:
+            print(f"   [ERROR] Synthesis failed: {e}")
+            return f"Error generating answer: {str(e)}\n\nPlease try again with a simpler question."
