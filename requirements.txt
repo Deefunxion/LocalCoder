@@ -1,0 +1,53 @@
+# Core LlamaIndex dependencies (let pip resolve compatible versions)
+llama-index-core>=0.14.5
+llama-index-llms-ollama>=0.9.0
+llama-index-embeddings-huggingface>=0.6.0
+
+# Vector database
+chromadb>=0.5.0
+
+# Embedding models
+sentence-transformers>=3.0.0
+
+# PyTorch for embeddings
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# ONNX Runtime for GPU acceleration (RTX 5070 Ti support)
+onnxruntime-gpu>=1.19.0
+
+# Additional utilities
+transformers>=4.30.0
+
+# Configuration management
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+
+# BM25 for hybrid search
+rank-bm25>=0.2.2
+
+# Reranking
+sentence-transformers[reranker]>=3.0.0
+
+# Error handling & retry logic
+tenacity>=8.0.0
+
+# File watching for auto-reindexing
+watchdog>=3.0.0
+
+# Web UI improvements
+gradio>=4.0.0
+
+# Async support
+aiofiles>=23.0.0
+
+# Code parsing for metadata extraction
+ast-comments>=1.0.0

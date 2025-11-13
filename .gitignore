@@ -169,25 +169,22 @@ Thumbs.db
 academicon_chroma_db/
 *.sqlite3
 *.db
-*.log
 web_ui.log
 test_*.log
 *.tmp
 
-# Documentation files to exclude
-Documentation/*.md
-*.md
-*.txt
-HOW_TO_USE.md
-README.md
-TIMEOUT_FIXES.md
-*.md
-*.txt
+# Documentation files to INCLUDE (commented out)
+# Documentation/
+# *.md
+# *.txt
+# HOW_TO_USE.md
+# README.md
+# TIMEOUT_FIXES.md
 
-# Test files
-test_*.py
-*_test.py
-testing/
+# Test files to INCLUDE (commented out)
+# test_*.py
+# *_test.py
+# testing/
 
 # Batch files
 *.bat
