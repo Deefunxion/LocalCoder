@@ -1,53 +1,66 @@
-# Core LlamaIndex dependencies (let pip resolve compatible versions)
-llama-index-core>=0.14.5
-llama-index-llms-ollama>=0.9.0
-llama-index-embeddings-huggingface>=0.6.0
+# Academicon Code Assistant - OpenRouter Edition
+# Multi-Agent RAG System with GPU-Accelerated Embeddings
+# Python 3.11+
 
-# Vector database
-chromadb>=0.5.0
+# ============================================================================
+# CORE LLAMA INDEX ECOSYSTEM
+# ============================================================================
+# Vector database and retrieval
+llama-index-core>=0.15.0
+llama-index-embeddings-huggingface>=0.2.0
 
-# Embedding models
-sentence-transformers>=3.0.0
+# LLM Integrations
+llama-index-llms-openai-like>=0.2.0
+llama-index-vector-stores-chroma>=0.1.0
 
-# PyTorch for embeddings
-torch>=2.0.0
-torchvision>=0.15.0
-torchaudio>=2.0.0
+# ============================================================================
+# VECTOR DATABASE & SEARCH
+# ============================================================================
+chromadb>=0.5.0,<0.6.0              # Persistent vector database
+rank-bm25>=0.2.2                    # BM25 for hybrid search
 
-# ONNX Runtime for GPU acceleration (RTX 5070 Ti support)
-onnxruntime-gpu>=1.19.0
+# ============================================================================
+# EMBEDDINGS & TRANSFORMERS
+# ============================================================================
+sentence-transformers>=3.0.0         # Nomic Embed model
+transformers>=4.40.0                # Hugging Face transformers
+huggingface-hub>=0.21.0             # Model downloading
 
-# Additional utilities
-transformers>=4.30.0
+# ============================================================================
+# PYTORCH & GPU SUPPORT
+# ============================================================================
+torch>=2.1.0                        # PyTorch with CUDA support
+torchvision>=0.16.0                 # Vision utilities
+torchaudio>=2.1.0                   # Audio utilities
 
-# Configuration management
-pydantic>=2.0.0
-pydantic-settings>=2.0.0
-python-dotenv>=1.0.0
+# ============================================================================
+# WEB UI & FRONTEND
+# ============================================================================
+gradio>=4.30.0                      # Web UI framework
+aiofiles>=23.0.0                    # Async file operations
 
-# Testing
-pytest>=7.0.0
-pytest-asyncio>=0.21.0
-pytest-cov>=4.0.0
-pytest-mock>=3.10.0
+# ============================================================================
+# CONFIGURATION & ENVIRONMENT
+# ============================================================================
+pydantic>=2.5.0                     # Data validation
+pydantic-settings>=2.1.0            # Settings management
+python-dotenv>=1.0.0                # .env file support
 
-# BM25 for hybrid search
-rank-bm25>=0.2.2
+# ============================================================================
+# UTILITIES & HELPERS
+# ============================================================================
+tenacity>=8.2.0                     # Retry logic for API calls
+ast-comments>=1.0.0                 # Code parsing
 
-# Reranking
-sentence-transformers[reranker]>=3.0.0
+# ============================================================================
+# TESTING & DEVELOPMENT
+# ============================================================================
+pytest>=7.4.0                       # Testing framework
+pytest-asyncio>=0.22.0              # Async test support
+pytest-cov>=4.1.0                   # Coverage reporting
+pytest-mock>=3.12.0                 # Mocking utilities
 
-# Error handling & retry logic
-tenacity>=8.0.0
-
-# File watching for auto-reindexing
-watchdog>=3.0.0
-
-# Web UI improvements
-gradio>=4.0.0
-
-# Async support
-aiofiles>=23.0.0
-
-# Code parsing for metadata extraction
-ast-comments>=1.0.0
+# ============================================================================
+# OPTIONAL: GPU ACCELERATION (ONNX Runtime)
+# ============================================================================
+# onnxruntime-gpu>=1.19.0           # Uncomment for ONNX optimization

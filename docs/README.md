@@ -19,42 +19,34 @@ LocalCoder is an intelligent code assistant that answers questions about the Aca
 
 ## Quick Start
 
-### Windows Users (Easiest)
-
-**Step 1: Copy environment template**
+### 1. Install Dependencies
 ```bash
-# Copy to .env and fill in your API key
-copy .env.example .env
-```
-
-**Step 2: Index the codebase** (first time only)
-```bash
-cd src
-index_academicon_lite.bat
-```
-
-**Step 3: Start web UI**
-```bash
-start_web_ui.bat
-# Opens http://127.0.0.1:7860
-```
-
-### Command Line (All Platforms)
-
-```bash
-# Install dependencies
 pip install -r requirements.txt
+```
 
-# Get API key from https://openrouter.ai/
-# Edit .env file with your key
+### 2. Setup OpenRouter (Recommended)
+```bash
+# Get API key from https://openrouter.ai/keys
+# Edit .env file:
+OPENROUTER_API_KEY=sk-or-v1-YOUR-KEY-HERE
 
-# Index codebase
+# Configure free models:
+ORCHESTRATOR_MODEL=z-ai/glm-4.5-air:free
+SYNTHESIZER_MODEL=z-ai/glm-4.5-air:free
+```
+
+### 3. Index the Codebase (One-time)
+```bash
 python src/index_academicon_lite.py
+# Takes 5-10 minutes, creates vector database
+```
 
-# Test in CLI
-python src/main_openrouter.py
+### 4. Run the Assistant
+```bash
+# Web UI (Recommended)
+start_web_ui_openrouter.bat
 
-# Or use web UI
+# Or manually:
 python src/web_ui_openrouter.py
 ```
 
@@ -108,54 +100,38 @@ All models are **FREE** via OpenRouter!
 
 ## Documentation
 
-- **[OPENROUTER_SETUP.md](OPENROUTER_SETUP.md)**: Complete OpenRouter setup guide
-- **[CLAUDE.md](CLAUDE.md)**: Technical documentation for AI assistants
-- **[HOW_TO_USE.md](HOW_TO_USE.md)**: Usage guide
+- **[docs/OPENROUTER_SETUP.md](docs/OPENROUTER_SETUP.md)**: Complete OpenRouter setup guide
+- **[docs/CLAUDE.md](docs/CLAUDE.md)**: Technical documentation for AI assistants
+- **[docs/HOW_TO_USE.md](docs/HOW_TO_USE.md)**: Usage guide
 - **[AGENTS.md](AGENTS.md)**: Agent design guidelines
 
 ## Project Structure
 
 ```
 LocalCoder/
-├── src/                         # Active OpenRouter implementation
-│   ├── agents_openrouter.py    # 4-agent system
-│   ├── main_openrouter.py      # Pipeline with memory
-│   ├── web_ui_openrouter.py    # Gradio interface
-│   ├── index_academicon_lite.py # Indexing script
-│   ├── utils.py                 # Shared utilities
-│   ├── start_web_ui.bat        # Quick launcher (Windows)
-│   ├── index_academicon_lite.bat # Indexer (Windows)
-│   └── README.md                # Quick start guide
-│
-├── config/                      # Configuration (NEW)
-│   ├── settings.py              # Centralized Config class
+├── src/
+│   ├── agents_openrouter.py       # OpenRouter agents (recommended)
+│   ├── main_openrouter.py         # Pipeline with conversation memory
+│   ├── web_ui_openrouter.py       # Gradio web interface
+│   ├── index_academicon_lite.py   # Codebase indexing
 │   └── __init__.py
-│
-├── legacy/                      # Deprecated Ollama implementation
-│   ├── agents.py               # Old Ollama agents
+├── legacy/                         # Deprecated Ollama implementation
+│   ├── agents.py
 │   ├── main.py
 │   ├── web_ui.py
 │   └── README_LEGACY.md
-│
-├── docs/                        # Documentation
-│   ├── README.md               # Architecture overview
-│   ├── CLAUDE.md               # AI assistant guide
-│   └── OPENROUTER_SETUP.md     # Setup instructions
-│
-├── tests/                       # Unit tests (empty, for future use)
-│
-├── .env.example                 # Configuration template
-├── requirements.txt             # Dependencies (cleaned up)
-├── academicon_chroma_db/        # Vector database
-└── README.md                    # This file
+├── docs/                           # Documentation
+│   ├── README.md
+│   ├── CLAUDE.md
+│   └── OPENROUTER_SETUP.md
+├── config/                         # Configuration (to be created)
+├── tests/                          # Unit tests (to be created)
+├── .env                            # Configuration (API keys, models)
+├── .env.example                    # Configuration template
+├── requirements.txt                # Python dependencies
+├── academicon_chroma_db/           # Vector database
+└── start_web_ui_openrouter.bat     # Quick launcher
 ```
-
-**Key Changes:**
-- ✅ Code moved to `src/` (OpenRouter) and `legacy/` (Ollama)
-- ✅ Config centralized in `config/settings.py`
-- ✅ Batch files moved to `src/` for easier access
-- ✅ All hardcoded paths eliminated
-- ✅ Structured logging throughout
 
 ## Performance Comparison
 
@@ -214,4 +190,4 @@ Built with:
 
 ---
 
-**Status:** Active development | **Last Updated:** November 12, 2025
+**Status:** Active development | **Last Updated:** November 13, 2025
