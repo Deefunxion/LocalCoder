@@ -4,11 +4,18 @@
 import sys
 import logging
 import warnings
+import os
 from pathlib import Path
 
-# Disable PyTorch/TorchVision warnings before any imports
+# Disable all warnings before any imports
+warnings.filterwarnings("ignore")
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Disable TensorFlow warnings
+os.environ['TRANSFORMERS_VERBOSITY'] = 'error'  # Only show errors for transformers
+
+# Disable PyTorch/TorchVision warnings specifically
 warnings.filterwarnings("ignore", message="Failed to load image Python extension")
 warnings.filterwarnings("ignore", message="The torchvision.datapoints and torchvision.transforms.v2 namespaces are still Beta")
+warnings.filterwarnings("ignore", category=UserWarning, module="torchvision")
 
 # Suppress torchvision beta warnings
 try:
@@ -90,7 +97,8 @@ def query_assistant(message, history):
         }
 
         # Append to history
-        history.append((message, answer))
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": answer})
         return history
         
     except Exception as e:
@@ -109,7 +117,8 @@ def query_assistant(message, history):
         else:
             error_msg += "Please try again or check the logs."
         
-        history.append((message, error_msg))
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": error_msg})
         return history
 
 
@@ -298,5 +307,7 @@ if __name__ == "__main__":
         server_name="127.0.0.1",  # localhost only
         server_port=None,  # Auto-find available port
         share=False,  # Don't create public link
-        show_error=True
+        show_error=True,
+        favicon_path=None,  # Disable favicon/PWA features
+        pwa=False  # Explicitly disable PWA
     )

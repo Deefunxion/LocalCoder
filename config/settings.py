@@ -64,7 +64,7 @@ class Config:
     
     EMBEDDING_MODEL_NAME = 'nomic-ai/nomic-embed-text-v1.5'
     EMBEDDING_DIMENSIONS = 768
-    EMBEDDING_DEVICE = 'cuda'  # Will auto-detect in code
+    EMBEDDING_DEVICE = 'cpu'  # Temporarily use CPU due to RTX 5070 Ti compatibility issues
 
     # ============================================================================
     # OPENROUTER API CONFIGURATION
@@ -232,11 +232,27 @@ config = Config()
 # ============================================================================
 
 def get_device() -> str:
-    """Auto-detect GPU or fallback to CPU"""
+    """Smart GPU detection with fallback for RTX 5070 Ti compatibility"""
     try:
         import torch
-        return "cuda" if torch.cuda.is_available() else "cpu"
-    except ImportError:
+        
+        # Check if CUDA is available
+        if not torch.cuda.is_available():
+            return "cpu"
+        
+        # Get GPU info
+        gpu_name = torch.cuda.get_device_name(0).lower()
+        
+        # RTX 5070 Ti has known compatibility issues with SentenceTransformer
+        if "rtx 5070" in gpu_name:
+            print("⚠️  RTX 5070 Ti detected - using CPU for SentenceTransformer compatibility")
+            return "cpu"
+        
+        # For other GPUs, try CUDA
+        return "cuda"
+        
+    except Exception as e:
+        print(f"⚠️  GPU detection failed ({e}) - using CPU")
         return "cpu"
 
 
